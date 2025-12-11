@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mishal's English Knowledge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#0b0f1a;
+      --panel:#111627;
+      --panel-2:#0e1422;
+      --accent:#25c36f;
+      --accent-2:#1fa85d;
+      --text:#e8f1ff;
+      --muted:#9bb0c9;
+      --danger:#ff5d5d;
+      --warn:#ffbb33;
+      --good:#4bd68e;
+    }
+
+    *{box-sizing:border-box}
+    html,body{
+      height:100%;
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:Poppins, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      overflow:hidden;
+    }
+
+    /* Background canvas layer */
+    #bg{
+      position:fixed;
+      inset:0;
+      z-index:0;
+    }
+
+    /* Floating faint words layer */
+    #words-layer{
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      z-index:1;
+      opacity:0.35;
+      filter:blur(0.2px);
+    }
+    .word{
+      position:absolute;
+      color:#cfe3ff;
+      font-weight:600;
+      font-size:clamp(12px, 2vw, 20px);
+      opacity:0.15;
+      animation: floatWord linear forwards;
+      text-shadow: 0 0 6px rgba(180,210,255,0.15);
+    }
+    @keyframes floatWord{
+      0%{ transform: translateY(0) translateX(0); opacity:0.0 }
+      10%{ opacity:0.25 }
+      90%{ opacity:0.25 }
+      100%{ transform: translateY(-120vh) translateX(12vw); opacity:0.0 }
+    }
+
+    /* Main app layout */
+    .app{
+      position:relative;
+      z-index:2;
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+
+    .card{
+      width:min(900px, 92vw);
+      min-height:480px;
+      background:linear-gradient(180deg, var(--panel), var(--panel-2));
+      border:1px solid rgba(255,255,255,0.06);
+      border-radius:18px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.03);
+      overflow:hidden;
+    }
+
+    .header{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      padding:18px 22px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.06), transparent);
+      border-bottom:1px solid rgba(255,255,255,0.06);
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .brand-badge{
+      width:42px; height:42px;
+      background:radial-gradient(circle at 30% 30%, #1df285 0, #13c06a 40%, #106f41 100%);
+      border-radius:12px;
+      box-shadow: 0 4px 18px rgba(37,195,111,0.45), inset 0 0 16px rgba(255,255,255,0.12);
+    }
+    .title{
+      font-weight:700; letter-spacing:0.2px; font-size:20px;
+    }
+    .subtitle{
+      color:var(--muted);
+      font-size:13px;
+    }
+    .progress{
+      margin-left:auto;
+      display:flex; align-items:center; gap:10px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .pbar{
+      width:160px; height:8px;
+      background:rgba(255,255,255,0.08);
+      border-radius:999px; overflow:hidden;
+    }
+    .pbar > span{
+      display:block; height:100%;
+      background:linear-gradient(90deg, var(--accent), #38d48b);
+      width:0%;
+      transition:width 280ms ease;
+    }
+
+    .content{
+      padding:26px 26px 18px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:18px;
+    }
+
+    .panel{
+      background:rgba(255,255,255,0.03);
+      border:1px solid rgba(255,255,255,0.06);
+      border-radius:14px;
+      padding:18px;
+    }
+
+    .hero{
+      text-align:center;
+      padding:24px 14px 8px;
+    }
+    .hero h1{
+      margin:0 0 8px 0;
+      font-size:clamp(22px, 4.4vw, 34px);
+    }
+    .hero p{
+      margin:0 auto;
+      max-width:720px;
+      color:var(--muted);
+    }
+
+    .btns{
+      display:flex; gap:12px; justify-content:center; flex-wrap:wrap;
+      padding:14px 0 6px;
+    }
+    .btn{
+      appearance:none; border:none; outline:none;
+      cursor:pointer; border-radius:12px;
+      padding:12px 18px; font-weight:600; letter-spacing:0.2px;
+      color:#05130c;
+      background:linear-gradient(180deg, var(--accent), var(--accent-2));
+      box-shadow: 0 10px 24px rgba(31,168,93,0.35), inset 0 1px 0 rgba(255,255,255,0.38);
+      transition: transform 120ms ease, box-shadow 200ms ease, filter 200ms ease;
+    }
+    .btn:hover{ transform:translateY(-1px); filter:brightness(1.05) }
+    .btn:active{ transform:translateY(1px) }
+    .btn.secondary{
+      background:linear-gradient(180deg, #53617c, #3b465a);
+      color:#eaf3ff;
+      box-shadow: 0 10px 24px rgba(90,110,140,0.25), inset 0 1px 0 rgba(255,255,255,0.18);
+    }
+    .btn.ghost{
+      background:transparent; color:#cfe3ff;
+      border:1px solid rgba(255,255,255,0.18);
+      box-shadow:none;
+    }
+
+    .options{
+      display:grid; grid-template-columns: repeat(3, 1fr);
+      gap:12px;
+    }
+    .option{
+      padding:14px; border-radius:12px;
+      border:1px solid rgba(255,255,255,0.10);
+      background:rgba(255,255,255,0.03);
+      cursor:pointer; transition: transform 120ms ease, border-color 160ms ease, background 160ms ease;
+      text-align:center; font-weight:600;
+      user-select:none;
+    }
+    .option:hover{ transform:translateY(-1px); border-color:rgba(255,255,255,0.18); background:rgba(255,255,255,0.06) }
+    .option.selected{ outline:2px solid var(--accent); background:rgba(31,168,93,0.12) }
+
+    .prompt{
+      font-weight:600; margin-bottom:10px;
+    }
+
+    .input-row{
+      display:flex; gap:12px; flex-wrap:wrap;
+    }
+    input[type="text"]{
+      width:100%;
+      padding:12px 14px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(10,16,25,0.6);
+      color:var(--text);
+      font-size:15px;
+      outline:none;
+    }
+    input[type="range"]{
+      width:100%;
+    }
+
+    .hint{ color:var(--muted); font-size:13px }
+
+    .canvas-wrap{
+      background:rgba(255,255,255,0.02);
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:12px;
+      padding:12px;
+    }
+    #handwrite{
+      width:100%; height:260px; background:#0c1320;
+      border-radius:8px; border:1px dashed rgba(255,255,255,0.15);
+      cursor: crosshair;
+    }
+    .tools{ display:flex; gap:10px; margin-top:10px }
+
+    .results{
+      display:grid; gap:10px;
+    }
+    .stat-grid{
+      display:grid; gap:10px;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .stat{
+      padding:12px; border:1px solid rgba(255,255,255,0.10);
+      border-radius:10px; background:rgba(255,255,255,0.03);
+    }
+    .badge{
+      display:inline-block;
+      padding:6px 10px; border-radius:999px; font-size:12px; font-weight:700;
+      color:#04120b;
+      background:var(--good);
+    }
+    .badge.warn{ background:var(--warn); color:#261600 }
+    .badge.fail{ background:var(--danger); color:#280000 }
+
+    .footer{
+      padding:16px 22px;
+      border-top:1px solid rgba(255,255,255,0.06);
+      display:flex; align-items:center; justify-content:space-between; gap:12px;
+      background:linear-gradient(180deg, transparent, rgba(255,255,255,0.04));
+    }
+    .steps{
+      display:flex; gap:8px; flex-wrap:wrap;
+      font-size:12px; color:var(--muted);
+    }
+    .chip{
+      padding:6px 10px; border-radius:999px;
+      background:rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.12);
+    }
+
+    /* Tutorial overlay */
+    .overlay{
+      position:fixed; inset:0; z-index:3;
+      display:none; align-items:center; justify-content:center;
+      background:rgba(6,10,16,0.75);
+      backdrop-filter: blur(6px);
+    }
+    .overlay .modal{
+      width:min(800px, 92vw);
+      background:linear-gradient(180deg, var(--panel), var(--panel-2));
+      border:1px solid rgba(255,255,255,0.08);
+      border-radius:16px; padding:18px 18px 14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    }
+    .modal h3{ margin:8px 0 6px 0 }
+    .modal p{ color:var(--muted) }
+    .modal .list{ display:grid; gap:10px; margin:10px 0 }
+    .modal .list .row{
+      display:flex; gap:12px; align-items:flex-start;
+      background:rgba(255,255,255,0.03);
+      border:1px solid rgba(255,255,255,0.06);
+      border-radius:12px; padding:10px;
+    }
+    .row .num{
+      width:28px; height:28px; border-radius:8px;
+      display:grid; place-items:center; font-weight:700;
+      color:#05130c; background:var(--accent);
+    }
+
+    @media (max-width:640px){
+      .options{ grid-template-columns: 1fr; }
+      .stat-grid{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Animated background -->
+  <canvas id="bg"></canvas>
+  <div id="words-layer"></div>
+
+  <!-- Tutorial overlay -->
+  <div class="overlay" id="tutorialOverlay" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="tutorialTitle">
+      <div style="display:flex; align-items:center; justify-content:space-between;">
+        <h3 id="tutorialTitle">How it works</h3>
+        <button class="btn ghost" id="closeTutorial">Close</button>
+      </div>
+      <p>Seven short steps. Questions randomize each run. Aim for clarity and have fun.</p>
+      <div class="list">
+        <div class="row"><div class="num">1</div><div><strong>Meaning:</strong> Choose the Arabic meaning for a word.</div></div>
+        <div class="row"><div class="num">2</div><div><strong>Blank:</strong> Finish the sentence by picking the best word.</div></div>
+        <div class="row"><div class="num">3</div><div><strong>Knowledge:</strong> Easy general/history question—choose the correct answer.</div></div>
+        <div class="row"><div class="num">4</div><div><strong>Typing:</strong> Type a simple sentence exactly as shown.</div></div>
+        <div class="row"><div class="num">5</div><div><strong>Tech:</strong> Pick the Arabic meaning for a tech term.</div></div>
+        <div class="row"><div class="num">6</div><div><strong>Handwriting:</strong> Write with mouse or touch. We’ll note if it’s readable (no results shown).</div></div>
+        <div class="row"><div class="num">7</div><div><strong>Survey + Results:</strong> Rate the site, see your score, GPA, and pass/fail. You can retry.</div></div>
+      </div>
+      <div class="btns">
+        <button class="btn" id="startNowBtn">Start now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- App -->
+  <div class="app">
+    <div class="card" role="region" aria-label="Quiz card">
+      <div class="header">
+        <div class="brand">
+          <div class="brand-badge" aria-hidden="true"></div>
+          <div>
+            <div class="title">Mishal’s English Knowledge</div>
+            <div class="subtitle">Test your knowledge in 7 steps with calm animations</div>
+          </div>
+        </div>
+        <div class="progress" aria-label="Progress">
+          <div>Step <span id="stepLabel">0</span>/7</div>
+          <div class="pbar" aria-hidden="true"><span id="pbar"></span></div>
+        </div>
+      </div>
+
+      <div class="content">
+        <!-- Dynamic panel -->
+        <div class="panel" id="panel">
+          <div class="hero" id="homeHero">
+            <h1>Ready to begin?</h1>
+            <p>Enjoy a soothing animated background with subtle English words drifting by. Click the green button to see a short tutorial, then start the test.</p>
+            <div class="btns">
+              <button class="btn" id="getStartedBtn">Get started</button>
+              <button class="btn secondary" id="skipTutorialBtn">Skip tutorial & start</button>
+            </div>
+          </div>
+
+          <!-- Step content mounts here -->
+          <div id="stepMount" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="steps">
+          <span class="chip">Meaning</span>
+          <span class="chip">Blank</span>
+          <span class="chip">Knowledge</span>
+          <span class="chip">Typing</span>
+          <span class="chip">Tech</span>
+          <span class="chip">Handwriting</span>
+          <span class="chip">Survey + Results</span>
+        </div>
+        <div class="btns" style="justify-content:flex-end;">
+          <button class="btn ghost" id="prevBtn" disabled>Back</button>
+          <button class="btn" id="nextBtn" disabled>Next</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------- Animated background (moving lines) ----------
+    (function(){
+      const canvas = document.getElementById('bg');
+      const ctx = canvas.getContext('2d');
+      let W, H, lines = [];
+
+      function resize(){
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      function makeLine(){
+        const y = Math.random() * H;
+        const speed = 0.6 + Math.random() * 1.4;
+        const len = 80 + Math.random()*220;
+        const hue = 205 + Math.random()*30;
+        return { x:-len, y, speed, len, hue, alpha:0.13 + Math.random()*0.15, w:1 + Math.random()*1.6 };
+      }
+      for(let i=0;i<32;i++) lines.push(makeLine());
+
+      function tick(){
+        ctx.clearRect(0,0,W,H);
+        ctx.globalCompositeOperation = 'lighter';
+        for(const l of lines){
+          l.x += l.speed;
+          if(l.x - l.len > W) {
+            l.x = -l.len;
+            l.y = Math.random()*H;
+            l.speed = 0.6 + Math.random()*1.4;
+            l.len = 80 + Math.random()*220;
+            l.hue = 205 + Math.random()*30;
+            l.alpha = 0.10 + Math.random()*0.14;
+            l.w = 1 + Math.random()*1.6;
+          }
+          const grad = ctx.createLinearGradient(l.x, l.y, l.x + l.len, l.y);
+          grad.addColorStop(0, `hsla(${l.hue}, 80%, 60%, 0.0)`);
+          grad.addColorStop(0.5, `hsla(${l.hue}, 90%, 65%, ${l.alpha})`);
+          grad.addColorStop(1, `hsla(${l.hue}, 80%, 60%, 0.0)`);
+          ctx.strokeStyle = grad;
+          ctx.lineWidth = l.w;
+          ctx.beginPath();
+          ctx.moveTo(l.x, l.y);
+          ctx.lineTo(l.x + l.len, l.y);
+          ctx.stroke();
+        }
+        requestAnimationFrame(tick);
+      }
+      tick();
+    })();
+
+    // ---------- Floating faint English words ----------
+    (function(){
+      const layer = document.getElementById('words-layer');
+      const words = [
+        'learn','focus','read','write','speak','listen','think','practice','improve',
+        'grammar','meaning','sentence','story','idea','simple','clear','smart',
+        'English','Arabic','vocabulary','verb','noun','adjective','question','answer'
+      ];
+      function spawn(){
+        const el = document.createElement('div');
+        el.className = 'word';
+        el.textContent = words[Math.floor(Math.random()*words.length)];
+        const left = Math.random()* (window.innerWidth - 120);
+        const top = window.innerHeight + 40;
+        const dur = 9000 + Math.random()*7000;
+        el.style.left = left+'px';
+        el.style.top = top+'px';
+        el.style.animationDuration = dur+'ms';
+        el.style.transform = `translateY(0)`;
+        layer.appendChild(el);
+        setTimeout(()=> el.remove(), dur);
+      }
+      setInterval(spawn, 900);
+      for(let i=0;i<12;i++) setTimeout(spawn, 300*i);
+    })();
+
+    // ---------- Quiz state ----------
+    const state = {
+      step: 0,                 // 0 = home, 1..7 steps
+      correctCount: 0,         // graded steps: 1,2,3,4,5
+      answers: {},             // per-step records
+      handwriting: { strokes:0, length:0, good:false },
+      survey: { rating: 3, comment:'' }
+    };
+
+    const stepLabel = document.getElementById('stepLabel');
+    const pbar = document.getElementById('pbar');
+    const panel = document.getElementById('panel');
+    const mount = document.getElementById('stepMount');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    // ---------- Tutorial overlay controls ----------
+    const overlay = document.getElementById('tutorialOverlay');
+    document.getElementById('getStartedBtn').addEventListener('click', ()=> {
+      overlay.style.display = 'flex';
+      overlay.setAttribute('aria-hidden', 'false');
+    });
+    document.getElementById('closeTutorial').addEventListener('click', ()=> {
+      overlay.style.display = 'none';
+      overlay.setAttribute('aria-hidden', 'true');
+    });
+    document.getElementById('startNowBtn').addEventListener('click', ()=> {
+      overlay.style.display = 'none';
+      overlay.setAttribute('aria-hidden', 'true');
+      startQuiz();
+    });
+    document.getElementById('skipTutorialBtn').addEventListener('click', startQuiz);
+
+    prevBtn.addEventListener('click', ()=> {
+      if(state.step>1){
+        state.step--;
+        renderStep();
+      } else if(state.step===1){
+        // go back to home
+        state.step = 0;
+        renderHome();
+      }
+    });
+
+    nextBtn.addEventListener('click', ()=> {
+      // guarded advance: only if enabled by current step
+      goNext();
+    });
+
+    function setProgress(){
+      stepLabel.textContent = state.step;
+      const pct = Math.max(0, Math.min(100, (state.step/7) * 100));
+      pbar.style.width = pct + '%';
+    }
+
+    function renderHome(){
+      mount.style.display = 'none';
+      document.getElementById('homeHero').style.display = 'block';
+      prevBtn.disabled = true;
+      nextBtn.disabled = true;
+      setProgress();
+    }
+
+    function startQuiz(){
+      state.step = 1;
+      state.correctCount = 0;
+      state.answers = {};
+      state.handwriting = { strokes:0, length:0, good:false };
+      state.survey = { rating:3, comment:'' };
+      renderStep();
+    }
+
+    function goNext(){
+      if(state.step < 7){
+        state.step++;
+        renderStep();
+      } else {
+        // After results, allow retry to home
+        startQuiz();
+      }
+    }
+
+    function enableNext(enable){
+      nextBtn.disabled = !enable;
+    }
+
+    function mountContent(html){
+      document.getElementById('homeHero').style.display = 'none';
+      mount.style.display = 'block';
+      mount.innerHTML = html;
+      setProgress();
+    }
+
+    // ---------- Utility ----------
+    function shuffle(array){
+      for(let i=array.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+    function normalize(str){ return (str||'').trim().toLowerCase(); }
+
+    // ---------- Step renderers ----------
+    function renderStep(){
+      setProgress();
+      prevBtn.disabled = (state.step===0);
+      nextBtn.disabled = true;
+
+      switch(state.step){
+        case 1: return step1();
+        case 2: return step2();
+        case 3: return step3();
+        case 4: return step4();
+        case 5: return step5();
+        case 6: return step6();
+        case 7: return step7();
+        default: return renderHome();
+      }
+    }
+
+    // Step 1: Meaning (English -> Arabic)
+    function step1(){
+      const pool = [
+        { en:'Screen', ar:'شاشة', wrong:['نافذة','لوحة'] },
+        { en:'Keyboard', ar:'لوحة مفاتيح', wrong:['شريحة','ذاكرة'] },
+        { en:'Mouse', ar:'فأرة', wrong:['حاسوب','كاميرا'] },
+        { en:'Window', ar:'نافذة', wrong:['شاشة','شريحة'] },
+      ];
+      const q = pool[Math.floor(Math.random()*pool.length)];
+      const opts = shuffle([q.ar, ...q.wrong]);
+      mountContent(`
+        <div class="prompt">Choose the correct Arabic meaning for: <strong>${q.en}</strong></div>
+        <div class="options" id="opts"></div>
+        <div class="hint">Pick one option to continue.</div>
+      `);
+      const optsWrap = document.getElementById('opts');
+      opts.forEach(txt=>{
+        const el = document.createElement('div');
+        el.className = 'option';
+        el.textContent = txt;
+        el.addEventListener('click', ()=>{
+          document.querySelectorAll('.option').forEach(o=>o.classList.remove('selected'));
+          el.classList.add('selected');
+          const correct = (txt===q.ar);
+          state.answers[1] = { question:`${q.en} → ?`, chosen:txt, correct };
+          if(correct) state.correctCount++;
+          enableNext(true);
+        });
+        optsWrap.appendChild(el);
+      });
+    }
+
+    // Step 2: Fill the blank (easy)
+    function step2(){
+      const pool = [
+        { sentence:'Yesterday I ___ to the mall.', options:['go','went','sleep'], correct:'went' },
+        { sentence:'He ___ dinner at 7.', options:['eat','eats','ate'], correct:'ate' },
+        { sentence:'They ___ happy today.', options:['is','are','am'], correct:'are' },
+        { sentence:'I ___ a book last night.', options:['read','reads','reading'], correct:'read' },
+      ];
+      const q = pool[Math.floor(Math.random()*pool.length)];
+      const opts = shuffle([...q.options]);
+      mountContent(`
+        <div class="prompt">Finish the sentence:</div>
+        <div class="panel" style="margin-bottom:10px;">
+          <strong>${q.sentence}</strong>
+        </div>
+        <div class="options" id="opts"></div>
+        <div class="hint">Choose the best word.</div>
+      `);
+      const optsWrap = document.getElementById('opts');
+      opts.forEach(txt=>{
+        const el = document.createElement('div');
+        el.className = 'option';
+        el.textContent = txt;
+        el.addEventListener('click', ()=>{
+          document.querySelectorAll('.option').forEach(o=>o.classList.remove('selected'));
+          el.classList.add('selected');
+          const correct = (normalize(txt)===normalize(q.correct));
+          state.answers[2] = { question:q.sentence, chosen:txt, correct };
+          if(correct) state.correctCount++;
+          enableNext(true);
+        });
+        optsWrap.appendChild(el);
+      });
+    }
+
+    // Step 3: Easy knowledge (history/general)
+    function step3(){
+      const pool = [
+        { q:'Albert Einstein became smart at age…', options:['5','6','7'], correct:'7' },  // playful and easy
+        { q:'The capital of France is…', options:['Paris','London','Rome'], correct:'Paris' },
+        { q:'The Sun rises in the…', options:['East','West','North'], correct:'East' },
+        { q:'The color of clear daytime sky is usually…', options:['Blue','Green','Red'], correct:'Blue' },
+      ];
+      const q = pool[Math.floor(Math.random()*pool.length)];
+      const opts = shuffle([...q.options]);
+      mountContent(`
+        <div class="prompt">Choose the correct answer:</div>
+        <div class="panel" style="margin-bottom:10px;">
+          <strong>${q.q}</strong>
+        </div>
+        <div class="options" id="opts"></div>
+      `);
+      const wrap = document.getElementById('opts');
+      opts.forEach(txt=>{
+        const el = document.createElement('div');
+        el.className = 'option';
+        el.textContent = txt;
+        el.addEventListener('click', ()=>{
+          document.querySelectorAll('.option').forEach(o=>o.classList.remove('selected'));
+          el.classList.add('selected');
+          const correct = (normalize(txt)===normalize(q.correct));
+          state.answers[3] = { question:q.q, chosen:txt, correct };
+          if(correct) state.correctCount++;
+          enableNext(true);
+        });
+        wrap.appendChild(el);
+      });
+    }
+
+    // Step 4: Type the sentence exactly
+    function step4(){
+      const sentences = [
+        'English is simple.',
+        'Learning is fun.',
+        'I love reading.',
+        'Practice makes perfect.',
+        'Be clear and kind.'
+      ];
+      const target = sentences[Math.floor(Math.random()*sentences.length)];
+      mountContent(`
+        <div class="prompt">Please type the correct sentence exactly as shown:</div>
+        <div class="panel"><strong>${target}</strong></div>
+        <div class="input-row">
+          <input type="text" id="typed" placeholder="Type here…" autocomplete="off" />
+          <button class="btn secondary" id="checkType">Check</button>
+        </div>
+        <div class="hint">Match capitalization, spaces, and punctuation.</div>
+        <div id="typeMsg" class="hint" style="margin-top:8px;"></div>
+      `);
+      document.getElementById('checkType').addEventListener('click', ()=>{
+        const val = document.getElementById('typed').value;
+        const correct = (val===target);
+        state.answers[4] = { question: target, typed: val, correct };
+        const msg = document.getElementById('typeMsg');
+        if(correct){
+          msg.textContent = 'Great! Exact match.';
+          msg.style.color = 'var(--good)';
+          state.correctCount++;
+        } else {
+          msg.textContent = 'Not exact. You can still continue.';
+          msg.style.color = 'var(--warn)';
+        }
+        enableNext(true);
+      });
+    }
+
+    // Step 5: Tech meaning (Arabic)
+    function step5(){
+      const pool = [
+        { en:'Chip', ar:'شريحة', wrong:['شاشة','معالج رسومي'] },
+        { en:'GPU', ar:'معالج رسومي', wrong:['لوحة مفاتيح','ذاكرة'] },
+        { en:'Screen', ar:'شاشة', wrong:['فأرة','معالج'] },
+      ];
+      const q = pool[Math.floor(Math.random()*pool.length)];
+      const opts = shuffle([q.ar, ...q.wrong]);
+      mountContent(`
+        <div class="prompt">Pick the correct Arabic meaning for the tech term: <strong>${q.en}</strong></div>
+        <div class="options" id="opts"></div>
+        <div class="hint">One choice is correct.</div>
+      `);
+      const wrap = document.getElementById('opts');
+      opts.forEach(txt=>{
+        const el = document.createElement('div');
+        el.className = 'option';
+        el.textContent = txt;
+        el.addEventListener('click', ()=>{
+          document.querySelectorAll('.option').forEach(o=>o.classList.remove('selected'));
+          el.classList.add('selected');
+          const correct = (normalize(txt)===normalize(q.ar));
+          state.answers[5] = { question:`${q.en} → ?`, chosen:txt, correct };
+          if(correct) state.correctCount++;
+          enableNext(true);
+        });
+        wrap.appendChild(el);
+      });
+    }
+
+    // Step 6: Handwriting canvas (simple readability heuristic, no result shown)
+    function step6(){
+      mountContent(`
+        <div class="prompt">Please show us your handwriting:</div>
+        <div class="canvas-wrap">
+          <canvas id="handwrite"></canvas>
+          <div class="tools">
+            <button class="btn secondary" id="clearCanvas">Clear</button>
+            <button class="btn" id="doneHandwriting">Done</button>
+          </div>
+        </div>
+        <div class="hint">Use mouse or touch to write at least one clear word or letters. We’ll silently note if it’s readable.</div>
+      `);
+
+      const canvas = document.getElementById('handwrite');
+      const ctx = canvas.getContext('2d');
+      function resizeCanvas(){
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#d4ffe9';
+      }
+      window.addEventListener('resize', resizeCanvas);
+      resizeCanvas();
+
+      let drawing = false, last = null, length = 0, strokes = 0;
+
+      function startDraw(x,y){
+        drawing = true;
+        last = {x,y};
+        strokes++;
+      }
+      function moveDraw(x,y){
+        if(!drawing || !last) return;
+        ctx.beginPath();
+        ctx.moveTo(last.x, last.y);
+        ctx.lineTo(x,y);
+        ctx.stroke();
+        length += Math.hypot(x-last.x, y-last.y);
+        last = {x,y};
+      }
+      function endDraw(){ drawing=false; last=null; }
+
+      function getPos(e){
+        const rect = canvas.getBoundingClientRect();
+        if(e.touches && e.touches[0]){
+          return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+        }
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      }
+
+      canvas.addEventListener('mousedown', e=>{ const p=getPos(e); startDraw(p.x,p.y); });
+      canvas.addEventListener('mousemove', e=>{ const p=getPos(e); moveDraw(p.x,p.y); });
+      window.addEventListener('mouseup', endDraw);
+
+      canvas.addEventListener('touchstart', e=>{ const p=getPos(e); startDraw(p.x,p.y); }, {passive:true});
+      canvas.addEventListener('touchmove', e=>{ const p=getPos(e); moveDraw(p.x,p.y); }, {passive:true});
+      window.addEventListener('touchend', endDraw);
+
+      document.getElementById('clearCanvas').addEventListener('click', ()=>{
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        length = 0; strokes = 0;
+      });
+
+      document.getElementById('doneHandwriting').addEventListener('click', ()=>{
+        const readable = (strokes >= 1) && (length > 340); // simple heuristic
+        state.handwriting = { strokes, length: Math.round(length), good: readable };
+        // Silently accept and move forward
+        enableNext(true);
+      });
+    }
+
+    // Step 7: Survey + Results
+    function step7(){
+      const totalQuestions = 5; // steps 1..5
+      const percent = Math.round((state.correctCount / totalQuestions) * 100);
+      const gpa = Math.round(((state.correctCount / totalQuestions) * 4) * 100) / 100;
+
+      let statusBadge = `<span class="badge fail">Failed</span>`;
+      if(state.correctCount >= 5) statusBadge = `<span class="badge">Passed</span>`;
+      else if(state.correctCount === 4) statusBadge = `<span class="badge warn">Passed (medium)</span>`;
+
+      // Build per-question list
+      function row(label, data){
+        const ok = data?.correct ? '✔' : '✖';
+        const color = data?.correct ? 'var(--good)' : 'var(--danger)';
+        const chosen = data?.chosen ?? data?.typed ?? '—';
+        return `
+          <div class="panel" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <div><strong>${label}:</strong> ${data?.question ?? '—'}</div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <div style="color:${color}; font-weight:700;">${ok}</div>
+              <div style="color:var(--muted);">Your answer: <strong>${chosen}</strong></div>
+            </div>
+          </div>
+        `;
+      }
+
+      mountContent(`
+        <div class="prompt">Quick survey: How is the website?</div>
+        <div class="panel">
+          <div style="display:grid; gap:10px;">
+            <label class="hint">Rate from 1 (needs work) to 5 (awesome)</label>
+            <input type="range" min="1" max="5" value="${state.survey.rating}" id="rating" />
+            <input type="text" id="comment" placeholder="Optional comment…" value="${state.survey.comment}" />
+          </div>
+        </div>
+
+        <div class="prompt">Your results</div>
+        <div class="results">
+          <div class="stat-grid">
+            <div class="stat"><strong>Correct answers:</strong><div style="font-size:22px; font-weight:700;">${state.correctCount}/${totalQuestions}</div></div>
+            <div class="stat"><strong>Percentage:</strong><div style="font-size:22px; font-weight:700;">${percent}%</div></div>
+            <div class="stat"><strong>GPA (out of 4):</strong><div style="font-size:22px; font-weight:700;">${gpa}</div></div>
+          </div>
+          <div class="panel" style="display:flex; align-items:center; justify-content:space-between;">
+            <div><strong>Status:</strong> ${statusBadge}</div>
+            <div class="hint">You can retry to get a different set of questions.</div>
+          </div>
+
+          ${row('Step 1 (Meaning)', state.answers[1])}
+          ${row('Step 2 (Blank)', state.answers[2])}
+          ${row('Step 3 (Knowledge)', state.answers[3])}
+          ${row('Step 4 (Typing)', state.answers[4])}
+          ${row('Step 5 (Tech)', state.answers[5])}
+
+          <div class="panel">
+            <strong>Handwriting noted (Step 6):</strong>
+            <div class="hint">Strokes: ${state.handwriting.strokes}, Length: ${state.handwriting.length}px, Readable: ${state.handwriting.good ? 'Yes' : 'No'}</div>
+            <div class="hint">We don’t show handwriting results—this is just a silent check.</div>
+          </div>
+        </div>
+
+        <div class="btns">
+          <button class="btn" id="retryBtn">Retry</button>
+        </div>
+      `);
+
+      enableNext(true);
+
+      document.getElementById('rating').addEventListener('input', e=>{
+        state.survey.rating = Number(e.target.value);
+      });
+      document.getElementById('comment').addEventListener('input', e=>{
+        state.survey.comment = e.target.value;
+      });
+      document.getElementById('retryBtn').addEventListener('click', ()=>{
+        // Reset to beginning (home)
+        state.step = 0;
+        renderHome();
+      });
+    }
+
+    // Initialize home view
+    renderHome();
+  </script>
+</body>
+</html>
