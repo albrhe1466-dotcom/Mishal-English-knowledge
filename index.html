@@ -23,14 +23,24 @@
     }
 
     *{box-sizing:border-box}
-    html,body{
+    html{
       height:100%;
+      scroll-behavior:smooth;
+    }
+    body{
+      min-height:100vh;
       margin:0;
       background:var(--bg);
       color:var(--text);
       font-family:Poppins, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      overflow:hidden;
+      /* Enable scroll on PC and phones */
+      overflow:auto;
     }
+
+    /* Custom scrollbar for PC (WebKit) */
+    ::-webkit-scrollbar{ width:10px }
+    ::-webkit-scrollbar-thumb{ background:#1b2438; border-radius:10px }
+    ::-webkit-scrollbar-thumb:hover{ background:#26314b }
 
     /* Background canvas layer */
     #bg{
@@ -68,16 +78,16 @@
     .app{
       position:relative;
       z-index:2;
-      height:100%;
+      min-height:100vh;
       display:flex;
       align-items:center;
       justify-content:center;
-      padding:24px;
+      padding:32px 24px; /* breathing room so scrolling shows background nicely */
     }
 
     .card{
-      width:min(900px, 92vw);
-      min-height:480px;
+      width:min(980px, 94vw);
+      min-height:560px;
       background:linear-gradient(180deg, var(--panel), var(--panel-2));
       border:1px solid rgba(255,255,255,0.06);
       border-radius:18px;
@@ -118,7 +128,7 @@
       font-size:13px;
     }
     .pbar{
-      width:160px; height:8px;
+      width:220px; height:8px;
       background:rgba(255,255,255,0.08);
       border-radius:999px; overflow:hidden;
     }
@@ -134,6 +144,9 @@
       display:grid;
       grid-template-columns: 1fr;
       gap:18px;
+      /* Make inner content scrollable if needed on small screens */
+      max-height: calc(100vh - 180px);
+      overflow:auto;
     }
 
     .panel{
@@ -228,9 +241,10 @@
       padding:12px;
     }
     #handwrite{
-      width:100%; height:260px; background:#0c1320;
+      width:100%; height:300px; background:#0c1320;
       border-radius:8px; border:1px dashed rgba(255,255,255,0.15);
       cursor: crosshair;
+      touch-action: none; /* smoother touch drawing */
     }
     .tools{ display:flex; gap:10px; margin-top:10px }
 
@@ -276,6 +290,8 @@
       display:none; align-items:center; justify-content:center;
       background:rgba(6,10,16,0.75);
       backdrop-filter: blur(6px);
+      /* Allow scrolling in modal on mobile if content is tall */
+      overflow:auto;
     }
     .overlay .modal{
       width:min(800px, 92vw);
@@ -299,9 +315,10 @@
       color:#05130c; background:var(--accent);
     }
 
-    @media (max-width:640px){
+    @media (max-width:780px){
       .options{ grid-template-columns: 1fr; }
       .stat-grid{ grid-template-columns: 1fr; }
+      .content{ max-height: none; } /* let the whole card grow and rely on page scroll */
     }
   </style>
 </head>
@@ -407,7 +424,7 @@
         const hue = 205 + Math.random()*30;
         return { x:-len, y, speed, len, hue, alpha:0.13 + Math.random()*0.15, w:1 + Math.random()*1.6 };
       }
-      for(let i=0;i<32;i++) lines.push(makeLine());
+      for(let i=0;i<36;i++) lines.push(makeLine());
 
       function tick(){
         ctx.clearRect(0,0,W,H);
@@ -476,7 +493,6 @@
 
     const stepLabel = document.getElementById('stepLabel');
     const pbar = document.getElementById('pbar');
-    const panel = document.getElementById('panel');
     const mount = document.getElementById('stepMount');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
@@ -486,6 +502,8 @@
     document.getElementById('getStartedBtn').addEventListener('click', ()=> {
       overlay.style.display = 'flex';
       overlay.setAttribute('aria-hidden', 'false');
+      // Ensure overlay can scroll on small screens
+      overlay.scrollTop = 0;
     });
     document.getElementById('closeTutorial').addEventListener('click', ()=> {
       overlay.style.display = 'none';
@@ -510,7 +528,6 @@
     });
 
     nextBtn.addEventListener('click', ()=> {
-      // guarded advance: only if enabled by current step
       goNext();
     });
 
@@ -535,12 +552,15 @@
       state.handwriting = { strokes:0, length:0, good:false };
       state.survey = { rating:3, comment:'' };
       renderStep();
+      // Scroll to top of the card when starting
+      document.querySelector('.card').scrollIntoView({ behavior:'smooth', block:'start' });
     }
 
     function goNext(){
       if(state.step < 7){
         state.step++;
         renderStep();
+        document.querySelector('.card').scrollTop = 0;
       } else {
         // After results, allow retry to home
         startQuiz();
@@ -556,6 +576,8 @@
       mount.style.display = 'block';
       mount.innerHTML = html;
       setProgress();
+      // Ensure content area resets scroll for long panels
+      document.querySelector('.content').scrollTop = 0;
     }
 
     // ---------- Utility ----------
@@ -586,13 +608,15 @@
       }
     }
 
-    // Step 1: Meaning (English -> Arabic)
+    // Step 1: Meaning (English -> Arabic) — random every run
     function step1(){
       const pool = [
         { en:'Screen', ar:'شاشة', wrong:['نافذة','لوحة'] },
         { en:'Keyboard', ar:'لوحة مفاتيح', wrong:['شريحة','ذاكرة'] },
         { en:'Mouse', ar:'فأرة', wrong:['حاسوب','كاميرا'] },
         { en:'Window', ar:'نافذة', wrong:['شاشة','شريحة'] },
+        { en:'Book', ar:'كتاب', wrong:['قلم','طاولة'] },
+        { en:'Pen', ar:'قلم', wrong:['شاشة','نافذة'] },
       ];
       const q = pool[Math.floor(Math.random()*pool.length)];
       const opts = shuffle([q.ar, ...q.wrong]);
@@ -618,13 +642,14 @@
       });
     }
 
-    // Step 2: Fill the blank (easy)
+    // Step 2: Fill the blank (easy) — random each time
     function step2(){
       const pool = [
-        { sentence:'Yesterday I ___ to the mall.', options:['go','went','sleep'], correct:'went' },
+        { sentence:'Yesterday I ___ to the mall.', options:['go','went','slept'], correct:'went' },
         { sentence:'He ___ dinner at 7.', options:['eat','eats','ate'], correct:'ate' },
         { sentence:'They ___ happy today.', options:['is','are','am'], correct:'are' },
         { sentence:'I ___ a book last night.', options:['read','reads','reading'], correct:'read' },
+        { sentence:'We ___ football on Friday.', options:['play','plays','played'], correct:'played' },
       ];
       const q = pool[Math.floor(Math.random()*pool.length)];
       const opts = shuffle([...q.options]);
@@ -653,13 +678,14 @@
       });
     }
 
-    // Step 3: Easy knowledge (history/general)
+    // Step 3: Easy knowledge (history/general) — randomized
     function step3(){
       const pool = [
-        { q:'Albert Einstein became smart at age…', options:['5','6','7'], correct:'7' },  // playful and easy
+        { q:'Albert Einstein became smart at age…', options:['5','6','7'], correct:'7' },
         { q:'The capital of France is…', options:['Paris','London','Rome'], correct:'Paris' },
         { q:'The Sun rises in the…', options:['East','West','North'], correct:'East' },
-        { q:'The color of clear daytime sky is usually…', options:['Blue','Green','Red'], correct:'Blue' },
+        { q:'The color of clear daytime sky is…', options:['Blue','Green','Red'], correct:'Blue' },
+        { q:'Water boils at ___ °C at sea level.', options:['90','95','100'], correct:'100' },
       ];
       const q = pool[Math.floor(Math.random()*pool.length)];
       const opts = shuffle([...q.options]);
@@ -687,14 +713,15 @@
       });
     }
 
-    // Step 4: Type the sentence exactly
+    // Step 4: Type the sentence exactly — randomized easy sentences
     function step4(){
       const sentences = [
         'English is simple.',
         'Learning is fun.',
         'I love reading.',
         'Practice makes perfect.',
-        'Be clear and kind.'
+        'Be clear and kind.',
+        'Speak slowly and smile.',
       ];
       const target = sentences[Math.floor(Math.random()*sentences.length)];
       mountContent(`
@@ -721,15 +748,18 @@
           msg.style.color = 'var(--warn)';
         }
         enableNext(true);
+        // Scroll to next button for mobile convenience
+        document.querySelector('.footer').scrollIntoView({ behavior:'smooth', block:'end' });
       });
     }
 
-    // Step 5: Tech meaning (Arabic)
+    // Step 5: Tech meaning (Arabic) — randomized
     function step5(){
       const pool = [
         { en:'Chip', ar:'شريحة', wrong:['شاشة','معالج رسومي'] },
         { en:'GPU', ar:'معالج رسومي', wrong:['لوحة مفاتيح','ذاكرة'] },
         { en:'Screen', ar:'شاشة', wrong:['فأرة','معالج'] },
+        { en:'CPU', ar:'معالج', wrong:['شاشة','قلم'] },
       ];
       const q = pool[Math.floor(Math.random()*pool.length)];
       const opts = shuffle([q.ar, ...q.wrong]);
@@ -772,8 +802,10 @@
       const canvas = document.getElementById('handwrite');
       const ctx = canvas.getContext('2d');
       function resizeCanvas(){
+        // Responsive canvas height for mobile vs desktop
+        const h = Math.max(220, Math.min(360, window.innerHeight * 0.35));
         canvas.width = canvas.clientWidth;
-        canvas.height = canvas.clientHeight;
+        canvas.height = h;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.lineWidth = 3;
@@ -808,10 +840,12 @@
         return { x: e.clientX - rect.left, y: e.clientY - rect.top };
       }
 
+      // Mouse
       canvas.addEventListener('mousedown', e=>{ const p=getPos(e); startDraw(p.x,p.y); });
       canvas.addEventListener('mousemove', e=>{ const p=getPos(e); moveDraw(p.x,p.y); });
       window.addEventListener('mouseup', endDraw);
 
+      // Touch
       canvas.addEventListener('touchstart', e=>{ const p=getPos(e); startDraw(p.x,p.y); }, {passive:true});
       canvas.addEventListener('touchmove', e=>{ const p=getPos(e); moveDraw(p.x,p.y); }, {passive:true});
       window.addEventListener('touchend', endDraw);
@@ -824,8 +858,8 @@
       document.getElementById('doneHandwriting').addEventListener('click', ()=>{
         const readable = (strokes >= 1) && (length > 340); // simple heuristic
         state.handwriting = { strokes, length: Math.round(length), good: readable };
-        // Silently accept and move forward
         enableNext(true);
+        document.querySelector('.footer').scrollIntoView({ behavior:'smooth', block:'end' });
       });
     }
 
@@ -839,7 +873,6 @@
       if(state.correctCount >= 5) statusBadge = `<span class="badge">Passed</span>`;
       else if(state.correctCount === 4) statusBadge = `<span class="badge warn">Passed (medium)</span>`;
 
-      // Build per-question list
       function row(label, data){
         const ok = data?.correct ? '✔' : '✖';
         const color = data?.correct ? 'var(--good)' : 'var(--danger)';
@@ -907,11 +940,20 @@
         // Reset to beginning (home)
         state.step = 0;
         renderHome();
+        // Smooth scroll back to top for PC/phone
+        window.scrollTo({ top:0, behavior:'smooth' });
       });
     }
 
     // Initialize home view
+    function setProgressInitial(){ document.getElementById('stepLabel').textContent = '0'; }
+    function renderInitial(){
+      setProgressInitial();
+      // Allow outer page scroll right away if hero is tall
+      window.requestAnimationFrame(()=> window.scrollTo({ top:0, behavior:'smooth' }));
+    }
     renderHome();
+    renderInitial();
   </script>
 </body>
 </html>
